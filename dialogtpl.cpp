@@ -54,14 +54,18 @@ void CommonDialog::setCentralFrame(QFrame *central)
     connect (pFrame, SIGNAL(error_message(const QString &)),
              pButtons, SLOT(error_message(const QString)));
     connect (this, SIGNAL(check_data(bool*)), pFrame, SLOT(is_good(bool*)));
-
+    connect(this, SIGNAL(save()), pFrame, SLOT(save()));
 }
 
 void CommonDialog::accept_pressed()
 {
     bool OK = true;
     emit check_data(&OK);
-    if (OK) accept();
+    if (OK) {
+        emit save();
+        accept();
+    }
+
     //QMessageBox::information(this, 'Attention', 'Accept data slot');
 }
 

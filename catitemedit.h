@@ -19,12 +19,14 @@ class Data : public QObject
     Q_OBJECT
 
 public:
+    Data(QObject *parent = 0) : QObject(parent) {}
     // pictogramma
     QString Code;
     QString Title;
     QDateTime From;
     QDateTime To;
     bool isLocal;
+    QString Comment;
     Data *pParentItem;
     //id
 };
@@ -41,9 +43,18 @@ public:
 
 private:
     Ui::CatItemFrame ui;
+    Data *Block;
+
+public:
+    void setDataBlock(Data *D) {Block = D; load();}
 
 public slots:
-    void is_good(bool *pOK);
+    void is_good(bool *pOK);   
+    void load();
+    bool save();
+
+signals:
+    void error_message(const QString &);
 };
 
 /*************************************************************/
@@ -58,6 +69,9 @@ private:
 public:
     Dialog(QWidget *parent = 0);
     virtual ~Dialog();
+
+public:
+    void setDataBlock(Data *D) {pFrame->setDataBlock(D); }
 };
 
 /*************************************************************/

@@ -12,16 +12,23 @@ TARGET = store
 TEMPLATE = app
 
 
-SOURCES += main.cpp\
-        mainwindow.cpp \
+SOURCES += main.cpp \
     application.cpp \
+    catalogue.cpp   \
     catitemedit.cpp \
-    dialogtpl.cpp
+    dialogtpl.cpp   \
+    mainwindow.cpp \
+    posaction.cpp
 
-HEADERS  += mainwindow.h \
-    application.h \
-    catitemedit.h \
-    dialogtpl.h
+
+HEADERS  += \
+    application.h   \
+    catalogue.h     \
+    catitemedit.h   \
+    dialogtpl.h     \
+    mainwindow.h \
+    posaction.h
+
 
 FORMS += \
     buttonsframe.ui \
