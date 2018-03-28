@@ -24,6 +24,9 @@ private:
 protected:
     virtual QVariant dataDisplay(const QModelIndex &I) const;
     virtual QVariant dataTextAlignment (const QModelIndex &I) const;
+    virtual QVariant dataForeground (const QModelIndex &I) const;
+    virtual QVariant dataFont (const QModelIndex &I) const;
+    virtual QVariant dataToolTip (const QModelIndex &I) const;
     virtual Item::Data* dataBlock(const QModelIndex &I) const;
 
 public:
@@ -38,8 +41,9 @@ public:
     QVariant headerData(int section,
                         Qt::Orientation orientation, int role) const;
 public slots:
-    void editItem(const QModelIndex &I, QWidget *parent = 0);
-
+    void editItem(const QModelIndex &I      , QWidget *parent = 0);
+    void newItem(const QModelIndex &parentI , QWidget *parent = 0);
+    void delItem(const QModelIndex &I       , QWidget *parent = 0);
 };
 
 /*******************************************************************************/
@@ -49,6 +53,8 @@ class TableView : public QTableView {
 
 private:
     PosAction *actEditItem;
+    PosAction *actNewItem;
+    PosAction *actDelItem;
 
 public:
     TableView(QWidget *parent = 0);

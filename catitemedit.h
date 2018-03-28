@@ -20,7 +20,7 @@ class Data : public QObject
     Q_OBJECT
 
 public:
-    Data(QObject *parent = 0) : QObject(parent) {}
+    Data(QObject *parent = 0) : QObject(parent), isLocal(true), pParentItem(NULL), Deleted(false) {}
     Data(QObject *parent, QSqlQuery &qry);
     // pictogramma
     QVariant Id;
@@ -31,8 +31,11 @@ public:
     bool isLocal;
     QString Comment;
     Data *pParentItem;
-
+    bool Deleted;
     //id
+
+public:
+    bool isActive() const;
 };
 
 /*************************************************************/

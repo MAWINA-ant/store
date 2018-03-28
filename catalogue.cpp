@@ -80,8 +80,8 @@ QVariant Model::dataDisplay(const QModelIndex &I) const
     switch (I.column()){
     case 0: return D->Code;
     case 1: return D->Title;
-    case 2: return D->From;
-    case 3: return D->To;
+    case 2: return D->From.isValid() ? D->From.toString("dd.MM.yyyy") : "";
+    case 3: return D->To.isValid() ? D->To.toString("dd.MM.yyyy") : "";
     case 4: return D->isLocal ? tr("LOCAL") : QString();
     case 5: return D->Comment.isEmpty() ? QString() : tr("CMT");
     default: return QVariant();
@@ -95,11 +95,52 @@ QVariant Model::dataTextAlignment(const QModelIndex &I) const
     return Result;
 }
 
+QVariant Model::dataForeground(const QModelIndex &I) const
+{
+    Item::Data *D = dataBlock(I);
+    if (!D) return QVariant();
+    QColor result = D->isLocal ? QColor("blue") : QColor("black");
+    !D->isActive() ? result.setAlphaF(0.4) : result.setAlphaF(1.0);
+    return result;
+}
+
+QVariant Model::dataFont(const QModelIndex &I) const
+{
+    Item::Data *D = dataBlock(I);
+    if (!D) return QVariant();
+    QFont F ;
+    if (D->Deleted)
+        F.setStrikeOut(true);
+    return F;
+}
+
+QVariant Model::dataToolTip(const QModelIndex &I) const
+{
+    Item::Data *D = dataBlock(I);
+    if (!D) return QVariant();
+    switch (I.column()) {
+    case 2: {
+        if (!D->To.isValid()) return QVariant();
+        return tr("Valid to: %1").arg(D->To.toString("dd.MM.yyyy"));
+    }
+    default: return QVariant();
+    }
+}
+
 QVariant Model::data(const QModelIndex &index, int role) const
 {
     switch (role) {
     case Qt::DisplayRole : return dataDisplay(index);
     case Qt::TextAlignmentRole : return dataTextAlignment(index);
+    case Qt::ForegroundRole : return dataForeground(index);
+    case Qt::FontRole : return dataFont(index);
+    case Qt::ToolTipRole : return dataToolTip(index);
+    //case Qt::UserRole : return QVariant(dataBlock(index));
+    case Qt::UserRole+1 : {
+        Item::Data *D = dataBlock(index);
+        if (!D) return false;
+        return D->Deleted;
+    }
     default : return QVariant();
     }
 }
@@ -151,6 +192,47 @@ void Model::editItem(const QModelIndex &I, QWidget *parent)
     endResetModel();
 }
 
+void Model::newItem(const QModelIndex &parentI, QWidget *parent)
+{
+    if (parentI.isValid()) {
+        // TODO sdelat dobavlenie novogo el
+        qWarning() << "Ca ";
+        return;
+    }
+    Item::Data *D = new Item::Data(this);
+    if (!D) {
+        qWarning() << "cant create";
+        return;
+    }
+    Item::Dialog Dia(parent);
+    Dia.setDataBlock(D);
+    if(Dia.exec() == QDialog::Accepted){
+        beginResetModel();
+        Cat.append(D);
+        endResetModel();
+    }
+    else
+    {
+        delete D;
+    }
+}
+
+void Model::delItem(const QModelIndex &I, QWidget *parent)
+{
+    // TODO uverennost' v udalenii
+    Item::Data *D = dataBlock(I);
+    if (!D) return;
+    beginResetModel();
+    if (D->Id.isNull() || !D->Id.isValid()) {
+        Cat.removeAt(I.row());
+        delete D;
+    }
+    else {
+        D->Deleted = !D->Deleted;
+    }
+    endResetModel();
+}
+
 /**********************************************************************/
 
 TableView::TableView(QWidget *parent)
@@ -171,6 +253,20 @@ TableView::TableView(QWidget *parent)
     }
 
     {
+        PosAction *A = actNewItem = new PosAction(this);
+        A->setText(tr("Add"));
+        connect(A, SIGNAL(editItem(QModelIndex,QWidget*)), M, SLOT(newItem(QModelIndex,QWidget*)));
+        addAction(A);
+    }
+
+    {
+        PosAction *A = actDelItem = new PosAction(this);
+        A->setText(tr("Delete"));
+        connect(A, SIGNAL(editItem(QModelIndex,QWidget*)), M, SLOT(delItem(QModelIndex,QWidget*)));
+        addAction(A);
+    }
+
+    {
         QHeaderView *H = verticalHeader();
         H->setSectionResizeMode(QHeaderView::ResizeToContents);
     }
@@ -179,6 +275,8 @@ TableView::TableView(QWidget *parent)
         H->setSectionResizeMode(QHeaderView::ResizeToContents);
         H->setSectionResizeMode(1, QHeaderView::Stretch);
     }
+    setColumnHidden(3, true);
+    setColumnHidden(4, true);
 }
 
 TableView::~TableView()
@@ -194,8 +292,20 @@ void TableView::contextMenuRequested(const QPoint &p)
         actEditItem->I = I;
         actEditItem->pWidget = this;
         M.addAction(actEditItem);
-        M.exec(mapToGlobal(p));
+        actDelItem->I = I;
+        actDelItem->pWidget = this;
+        if (I.data(Qt::UserRole+1).toBool()){
+            actDelItem->setText(tr("Restore"));
+        }
+        else {
+            actDelItem->setText(tr("Delete"));
+        }
+        M.addAction(actDelItem);
     }
+    actNewItem->I = QModelIndex();
+    actNewItem->pWidget = this;
+    M.addAction(actNewItem);
+    M.exec(mapToGlobal(p));
 }
 
 /**********************************************************************/

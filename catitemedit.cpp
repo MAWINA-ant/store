@@ -76,7 +76,7 @@ Dialog::~Dialog()
 }
 
 Data::Data(QObject *parent, QSqlQuery &qry)
-    : QObject(parent)
+    : QObject(parent) , Deleted(false)
 {
     Id = qry.value("iid");
     Code = qry.value("code").toString();
@@ -86,6 +86,17 @@ Data::Data(QObject *parent, QSqlQuery &qry)
     isLocal = qry.value("isLocal").toBool();
     Comment = qry.value("acomment").toString();
     pParentItem = NULL;
+}
+
+bool Data::isActive() const
+{
+    if (From.isValid())
+        if (From > QDateTime::currentDateTime())
+            return false;
+    if (To.isValid())
+        if (To < QDateTime::currentDateTime())
+            return false;
+    return true;
 }
 
 /*************************************************************/
