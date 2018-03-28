@@ -1,65 +1,48 @@
 #include "catalogue.h"
 
-//#include <QAction>
 #include <QMenu>
+#include <QtDebug>
+#include <QtSql>
 
 #include "posaction.h"
 
 namespace STORE {
 namespace Catalogue {
 
-
 /**********************************************************************/
 
 Model::Model(QObject *parent)
     : QAbstractTableModel (parent){
 
-    // TODO Это тестовый
+    QSqlQuery qry;
+    qry.setForwardOnly(true);
+    qry.prepare(
+                "SELECT         \n"
+                "iid ,          \n"
+                "code,          \n"
+                "title,         \n"
+                "valid_from,    \n"
+                "valid_to,      \n"
+                "isLocal,       \n"
+                "acomment,      \n"
+                "rid_parent,    \n"
+                "alevel         \n"
+                "FROM catalogue;\n"
+                );
+    if (qry.exec())
     {
-        Item::Data *D = new Item::Data(this);
-        D->Code = "111";
-        D->Title = "Fisics";
-        D->From = QDateTime::currentDateTime();
-        D->To = QDateTime();
-        D->isLocal = false;
-        Cat.append(D);
+        while (qry.next())
+        {
+            Item::Data *D = new Item::Data(this, qry);
+            Cat.append(D);
+        }
     }
+    else
     {
-        Item::Data *D = new Item::Data(this);
-        D->Code = "555";
-        D->Title = "Litra";
-        D->From = QDateTime::currentDateTime();
-        D->To = QDateTime();
-        D->isLocal = false;
-        Cat.append(D);
-    }
-    {
-        Item::Data *D = new Item::Data(this);
-        D->Code = "222";
-        D->Title = "Matematics";
-        D->From = QDateTime::currentDateTime();
-        D->To = QDateTime();
-        D->isLocal = true;
-        Cat.append(D);
-    }
-    {
-        Item::Data *D = new Item::Data(this);
-        D->Code = "333";
-        D->Title = "Biology";
-        D->From = QDateTime::currentDateTime();
-        D->To = QDateTime();
-        D->isLocal = false;
-        D->Comment = "check result";
-        Cat.append(D);
-    }
-    {
-        Item::Data *D = new Item::Data(this);
-        D->Code = "444";
-        D->Title = "Fizra";
-        D->From = QDateTime::currentDateTime();
-        D->To = QDateTime();
-        D->isLocal = true;
-        Cat.append(D);
+        QSqlError Err = qry.lastError();
+        qCritical() << Err.nativeErrorCode();
+        qCritical() << Err.databaseText();
+        qCritical() << Err.driverText();
     }
 }
 

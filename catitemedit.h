@@ -1,11 +1,12 @@
 #ifndef CATITEMEDIT_H
 #define CATITEMEDIT_H
 
-
 #include <QFrame>
 
 #include "ui_catitemframe.h"
 #include "dialogtpl.h"
+
+class QSqlQuery;
 
 namespace STORE {
 namespace Catalogue {
@@ -20,7 +21,9 @@ class Data : public QObject
 
 public:
     Data(QObject *parent = 0) : QObject(parent) {}
+    Data(QObject *parent, QSqlQuery &qry);
     // pictogramma
+    QVariant Id;
     QString Code;
     QString Title;
     QDateTime From;
@@ -28,6 +31,7 @@ public:
     bool isLocal;
     QString Comment;
     Data *pParentItem;
+
     //id
 };
 
