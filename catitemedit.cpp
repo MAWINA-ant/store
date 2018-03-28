@@ -99,6 +99,26 @@ bool Data::isActive() const
     return true;
 }
 
+bool Data::isNew() const
+{
+    if (!Id.isValid()) return true;
+    if (Id.isNull()) return true;
+    return false;
+}
+
+Data *List::findPointer(int Id) const
+{
+    foreach (Data *D, *this) {
+        bool OK;
+        int cid = D->Id.toInt(&OK);
+        if (OK && cid == Id)
+            return D;
+        Data *R = D->Children.findPointer(Id);
+        if (!R) return R;
+    }
+    return 0;
+}
+
 /*************************************************************/
 
 } // namespace Item

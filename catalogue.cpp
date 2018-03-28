@@ -6,13 +6,19 @@
 
 #include "posaction.h"
 
+#define DATA_PTR(D, I, VALUE)                               \
+    Item::Data *D = (Item::Data*)(I.internalPointer()) ;    \
+    if (!D) return VALUE
+
+#define DATE_STR(DATE) (DATE.isValid() ? DATE.toString("dd.MM.yyyy") : "")
+
 namespace STORE {
 namespace Catalogue {
 
 /**********************************************************************/
 
 Model::Model(QObject *parent)
-    : QAbstractTableModel (parent){
+    : QAbstractItemModel (parent){
 
     QSqlQuery qry;
     qry.setForwardOnly(true);
@@ -27,14 +33,24 @@ Model::Model(QObject *parent)
                 "acomment,      \n"
                 "rid_parent,    \n"
                 "alevel         \n"
-                "FROM catalogue;\n"
+                "FROM catalogue \n"
+                "ORDER by alevel ; \n"
                 );
     if (qry.exec())
     {
         while (qry.next())
         {
-            Item::Data *D = new Item::Data(this, qry);
-            Cat.append(D);
+            int parentId = qry.value("rid_parent").toInt();
+            Item::Data *P = Cat.findPointer(parentId);
+            if (P){
+                Item::Data *D = new Item::Data(P, qry);
+                P->Children.append(D);
+                D->pParentItem = P;
+            } else {
+                Item::Data *D = new Item::Data(this, qry);
+                Cat.append(D);
+                D->pParentItem = 0;
+            }
         }
     }
     else
@@ -54,34 +70,28 @@ int Model::rowCount(const QModelIndex &parent) const
 {
     if (!parent.isValid())
     {
-        return Cat.size(); // TODO заменить на првильное кол-во
+        return Cat.size();
     }
     else
     {
-        return 0;
+        DATA_PTR(P, parent, 0);
+        return P->Children.size();
     }
 }
 
 int Model::columnCount(const QModelIndex &parent) const
 {
-    if (!parent.isValid())
-    {
-        return 6; // TODO заменить на првильное кол-во
-    }
-    else
-    {
-        return 0;
-    }
+    return 6;
 }
 
 QVariant Model::dataDisplay(const QModelIndex &I) const
 {
-    Item::Data *D = Cat.at(I.row());
+    DATA_PTR(D, I, QVariant());
     switch (I.column()){
     case 0: return D->Code;
     case 1: return D->Title;
-    case 2: return D->From.isValid() ? D->From.toString("dd.MM.yyyy") : "";
-    case 3: return D->To.isValid() ? D->To.toString("dd.MM.yyyy") : "";
+    case 2: return DATE_STR(D->From);
+    case 3: return DATE_STR(D->To);
     case 4: return D->isLocal ? tr("LOCAL") : QString();
     case 5: return D->Comment.isEmpty() ? QString() : tr("CMT");
     default: return QVariant();
@@ -97,8 +107,7 @@ QVariant Model::dataTextAlignment(const QModelIndex &I) const
 
 QVariant Model::dataForeground(const QModelIndex &I) const
 {
-    Item::Data *D = dataBlock(I);
-    if (!D) return QVariant();
+    DATA_PTR(D, I, QVariant());
     QColor result = D->isLocal ? QColor("blue") : QColor("black");
     !D->isActive() ? result.setAlphaF(0.4) : result.setAlphaF(1.0);
     return result;
@@ -106,8 +115,7 @@ QVariant Model::dataForeground(const QModelIndex &I) const
 
 QVariant Model::dataFont(const QModelIndex &I) const
 {
-    Item::Data *D = dataBlock(I);
-    if (!D) return QVariant();
+    DATA_PTR(D, I, QVariant());
     QFont F ;
     if (D->Deleted)
         F.setStrikeOut(true);
@@ -116,8 +124,7 @@ QVariant Model::dataFont(const QModelIndex &I) const
 
 QVariant Model::dataToolTip(const QModelIndex &I) const
 {
-    Item::Data *D = dataBlock(I);
-    if (!D) return QVariant();
+    DATA_PTR(D, I, QVariant());
     switch (I.column()) {
     case 2: {
         if (!D->To.isValid()) return QVariant();
@@ -135,29 +142,49 @@ QVariant Model::data(const QModelIndex &index, int role) const
     case Qt::ForegroundRole : return dataForeground(index);
     case Qt::FontRole : return dataFont(index);
     case Qt::ToolTipRole : return dataToolTip(index);
-    //case Qt::UserRole : return QVariant(dataBlock(index));
     case Qt::UserRole+1 : {
-        Item::Data *D = dataBlock(index);
-        if (!D) return false;
+        DATA_PTR(D, index, false);
         return D->Deleted;
     }
     default : return QVariant();
     }
 }
 
-Item::Data* Model::dataBlock(const QModelIndex &I) const
+QModelIndex Model::index(int row, int column,
+                         const QModelIndex &parent) const
 {
-    int R = I.row();
-    if (R < 0 || R >= Cat.size())
-        return 0;
-    else
-        return Cat.at(R);
+    if (parent.isValid()) {
+        DATA_PTR(D, parent, QModelIndex());
+        createIndex(row, column, (void*)D);
+    } else {
+        if (row < 0 || row >= Cat.size())
+            return QModelIndex();
+        return createIndex(row, column, (void*)Cat.at(row));
+    }
+}
+
+QModelIndex Model::parent(const QModelIndex &child) const
+{
+    DATA_PTR(D, child, QModelIndex());
+    Item::Data *P = D->pParentItem;
+    if (P) {
+        return QModelIndex();
+    } else {
+        int Row = -1;
+        Item::Data *GP = P.pParentItem;
+        if (GP) {
+            for (int i = 0; i < GP->Children.size(); i++) {
+
+            }
+        }
+        return createIndex(?, 0, P);
+    }
 }
 
 QVariant Model::headerData(int section, Qt::Orientation orientation, int role) const
 {
     if (orientation != Qt::Horizontal)
-        return QAbstractTableModel::headerData(section, orientation, role);
+        return QAbstractItemModel::headerData(section, orientation, role);
 
     switch (role) {
     case Qt::DisplayRole :
@@ -184,8 +211,7 @@ QVariant Model::headerData(int section, Qt::Orientation orientation, int role) c
 void Model::editItem(const QModelIndex &I, QWidget *parent)
 {
     Item::Dialog Dia(parent);
-    Item::Data *D = dataBlock(I);
-    if (!D) return;
+    DATA_PTR(D,I,);
     Dia.setDataBlock(D);
     beginResetModel();
     Dia.exec();
@@ -219,12 +245,15 @@ void Model::newItem(const QModelIndex &parentI, QWidget *parent)
 
 void Model::delItem(const QModelIndex &I, QWidget *parent)
 {
-    // TODO uverennost' v udalenii
-    Item::Data *D = dataBlock(I);
-    if (!D) return;
+    DATA_PTR(D,I,);
     beginResetModel();
-    if (D->Id.isNull() || !D->Id.isValid()) {
-        Cat.removeAt(I.row());
+    if (D->isNew()) {
+        Item::Data *P = D->pParentItem;
+        if (P) {
+            P->Children.removeAt(I.row());
+        } else {
+            Cat.removeAt(I.row());
+        }
         delete D;
     }
     else {

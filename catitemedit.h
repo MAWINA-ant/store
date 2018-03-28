@@ -8,9 +8,18 @@
 
 class QSqlQuery;
 
+
 namespace STORE {
 namespace Catalogue {
 namespace Item {
+
+/*************************************************************/
+class Data;
+class List : public QList<Data*> {
+public:
+    List() : QList<Data*>() {}
+    Data * findPointer(int Id) const;
+};
 
 /*************************************************************/
 
@@ -32,10 +41,11 @@ public:
     QString Comment;
     Data *pParentItem;
     bool Deleted;
-    //id
+    List Children;
 
 public:
     bool isActive() const;
+    bool isNew() const;
 };
 
 /*************************************************************/
