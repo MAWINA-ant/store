@@ -51,6 +51,7 @@ bool Frame::save()
         Block->To = QDateTime();
     Block->isLocal = ui.cbxLocal->isChecked();
     Block->Comment = ui.edtComment->toPlainText().trimmed();
+    Block->Changed = true;
     return true;
 }
 
@@ -76,7 +77,7 @@ Dialog::~Dialog()
 }
 
 Data::Data(QObject *parent, QSqlQuery &qry)
-    : QObject(parent) , Deleted(false)
+    : QObject(parent)
 {
     Id = qry.value("iid");
     Code = qry.value("code").toString();
@@ -86,6 +87,8 @@ Data::Data(QObject *parent, QSqlQuery &qry)
     isLocal = qry.value("isLocal").toBool();
     Comment = qry.value("acomment").toString();
     pParentItem = NULL;
+    Deleted = false;
+    Changed = false;
 }
 
 bool Data::isActive() const
@@ -106,15 +109,27 @@ bool Data::isNew() const
     return false;
 }
 
+bool Data::isSameAs(Data *D) const
+{
+    if (isNew()) {
+        if (!D->isNew()) return false;
+        return property("temp_id") == D->property("temp_id");
+    } else {
+        if (D->isNew()) return false;
+        return D->Id == Id;
+    }
+}
+
 Data *List::findPointer(int Id) const
 {
-    foreach (Data *D, *this) {
+    Data *D;
+    foreach (D, *this) {
         bool OK;
         int cid = D->Id.toInt(&OK);
         if (OK && cid == Id)
             return D;
         Data *R = D->Children.findPointer(Id);
-        if (!R) return R;
+        if (R) return R;
     }
     return 0;
 }
