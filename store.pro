@@ -14,22 +14,29 @@ TEMPLATE = app
 
 SOURCES += main.cpp \
     application.cpp \
+    books.cpp      \
     catalogue.cpp   \
     catitemedit.cpp \
     dialogtpl.cpp   \
     mainwindow.cpp \
-    posaction.cpp
+    posaction.cpp \
+    filter.cpp
+
 
 
 HEADERS  += \
     application.h   \
+    books.h         \
     catalogue.h     \
     catitemedit.h   \
     dialogtpl.h     \
     mainwindow.h \
-    posaction.h
+    posaction.h \
+    filter.h
+
 
 
 FORMS += \
     buttonsframe.ui \
-    catitemframe.ui
+    catitemframe.ui \
+    filter.ui

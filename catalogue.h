@@ -3,6 +3,8 @@
 
 #include <QAbstractItemModel>
 #include <QTableView>
+#include <QTreeView>
+#include <QColumnView>
 
 #include "catitemedit.h"
 
@@ -81,13 +83,38 @@ private:
     QAction *actSave;
 
 public:
-    TableView(QWidget *parent = 0);
+    TableView(QWidget *parent = 0, Model *xModel = 0);
     virtual ~TableView();
 
 private slots:
     void contextMenuRequested(const QPoint &p);
     void ShowChildren(const QModelIndex &I, QWidget*);
     void ShowParent  ();
+};
+
+/*******************************************************************************/
+
+class TreeView : public QTreeView {
+    Q_OBJECT
+public:
+    TreeView(QWidget *parent = 0, Model *xModel = 0);
+    virtual ~TreeView();
+};
+
+/*******************************************************************************/
+
+class ColumnView : public QColumnView {
+    Q_OBJECT
+public:
+    ColumnView(QWidget *parent = 0, Model *xModel = 0);
+    virtual ~ColumnView();
+
+protected:
+    void currentChanged(const QModelIndex &current,
+                        const QModelIndex &previous);
+
+signals:
+    void itemSelected(QVariant id);
 };
 
 /*******************************************************************************/

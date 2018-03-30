@@ -13,6 +13,7 @@ Frame::Frame(QWidget *parent)
 {
     ui.setupUi(this);
     Block = NULL;
+    ui.edtFrom->setDateTime(QDateTime::currentDateTime());
 }
 
 Frame::~Frame()

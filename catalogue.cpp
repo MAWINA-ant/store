@@ -88,8 +88,8 @@ QVariant Model::dataDisplay(const QModelIndex &I) const
 {
     DATA_PTR(D, I, QVariant());
     switch (I.column()){
-    case 0: return D->Code;
-    case 1: return D->Title;
+    case 1: return D->Code;
+    case 0: return D->Title;
     case 2: return DATE_STR(D->From);
     case 3: return DATE_STR(D->To);
     case 4: return D->isLocal ? tr("LOCAL") : QString();
@@ -101,7 +101,7 @@ QVariant Model::dataDisplay(const QModelIndex &I) const
 QVariant Model::dataTextAlignment(const QModelIndex &I) const
 {
     int Result = Qt::AlignVCenter;
-    Result |= I.column() == 1 ? Qt::AlignLeft : Qt::AlignHCenter;
+    Result |= I.column() == 0 ? Qt::AlignLeft : Qt::AlignHCenter;
     return Result;
 }
 
@@ -136,13 +136,13 @@ QVariant Model::dataFont(const QModelIndex &I) const
 QVariant Model::dataToolTip(const QModelIndex &I) const
 {
     DATA_PTR(D, I, QVariant());
-    switch (I.column()) {
-    case 2: {
+    //switch (I.column()) {
+    //case 2: {
         if (!D->To.isValid()) return QVariant();
         return tr("Valid to: %1").arg(D->To.toString("dd.MM.yyyy"));
-    }
-    default: return QVariant();
-    }
+    //}
+    //default: return QVariant();
+    //}
 }
 
 bool Model::delete_all()
@@ -430,8 +430,8 @@ QVariant Model::headerData(int section, Qt::Orientation orientation, int role) c
     switch (role) {
     case Qt::DisplayRole :
         switch (section) {
-        case 0: return tr("Code");
-        case 1: return tr("Title");
+        case 1: return tr("Code");
+        case 0: return tr("Title");
         case 2: return tr("From");
         case 3: return tr("To");
         case 4: return tr("Local");
@@ -526,14 +526,14 @@ void Model::save( void )
 
 /**********************************************************************/
 
-TableView::TableView(QWidget *parent)
+TableView::TableView(QWidget *parent, Model *xModel)
     : QTableView(parent){
 
     setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, SIGNAL(customContextMenuRequested(QPoint)),
             this, SLOT(contextMenuRequested(QPoint)));
 
-    Model *M = new Model(this);
+    Model *M = xModel ? xModel : new Model(this);
     setModel(M);
 
     {
@@ -585,7 +585,7 @@ TableView::TableView(QWidget *parent)
     {
         QHeaderView *H = horizontalHeader();
         H->setSectionResizeMode(QHeaderView::ResizeToContents);
-        H->setSectionResizeMode(1, QHeaderView::Stretch);
+        H->setSectionResizeMode(0, QHeaderView::Stretch);
     }
     setColumnHidden(3, true);
     setColumnHidden(4, true);
@@ -635,6 +635,58 @@ void TableView::ShowParent(void)
 {
     if (rootIndex().isValid())
         setRootIndex(rootIndex().parent());
+}
+
+TreeView::TreeView(QWidget *parent, Model *xModel)
+    : QTreeView(parent)
+{
+    Model *M = xModel ? xModel : new Model(this);
+    setModel(M);
+    {
+        QHeaderView *H = header();
+        H->setSectionResizeMode(QHeaderView::ResizeToContents);
+        H->setSectionResizeMode(1, QHeaderView::Stretch);
+    }
+    setColumnHidden(3, true);
+    setColumnHidden(4, true);
+}
+
+TreeView::~TreeView()
+{
+
+}
+
+ColumnView::ColumnView(QWidget *parent, Model *xModel)
+    : QColumnView(parent)
+{
+    Model *M = xModel ? xModel : new Model(this);
+    setModel(M);
+
+    QList<int> L;
+    L << 150;
+    for (int k = 0; k < 10; k ++) L << 200;
+    setColumnWidths(L);
+}
+
+ColumnView::~ColumnView()
+{
+
+}
+
+void ColumnView::currentChanged(const QModelIndex &current,
+                                const QModelIndex &previous)
+{
+    QColumnView::currentChanged(current, previous);
+    if (!current.isValid()) {
+        emit itemSelected(QVariant());
+        return;
+    }
+    Item::Data *D = (Item::Data*)(current.internalPointer()) ;
+    if (!D) {
+        emit itemSelected(QVariant());
+        return;
+    }
+    emit itemSelected(D->Id);
 }
 
 /**********************************************************************/
